@@ -1,0 +1,23 @@
+{% extends 'offers/base.html' %}
+
+{% block title %}Список продуктов{% endblock %}
+
+{% block content %}
+<h1>Список продуктов</h1>
+
+<form method="get" action="{% url 'product_list' %}">
+    <input type="text" name="search" placeholder="Поиск по названию, тегам или артикулу">
+    <button class="button" type="submit">Поиск</button>
+</form>
+
+<ul>
+    {% for product in products %}
+        <li style="list-style-type: none; margin-left: -18px" class="form-control">
+            {{ product.name }} - {{ product.price }} руб.
+            <a id="edit" href="{% url 'edit_product' product.id %}">Редактировать</a>
+        </li>
+    {% endfor %}
+</ul>
+
+<a class="button" href="{% url 'profile' %}">Назад</a>
+{% endblock %}

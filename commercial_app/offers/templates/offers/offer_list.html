@@ -1,0 +1,22 @@
+{% extends 'offers/base.html' %}
+
+{% block title %}Реестр КП{% endblock %}
+
+{% block content %}
+<h1>Реестр КП</h1>
+
+<form method="get" action="{% url 'offer_list' %}">
+    <input type="text" name="search" placeholder="Поиск по номеру, дате или пользователю">
+    <button class="button" type="submit">Поиск</button>
+</form>
+
+<ul>
+    {% for offer in offers %}
+        <li style="list-style-type: none; margin-left: -18px" class="form-control">
+            <a>{{ offer.number }}</a> - {{ offer.date }} - {{ offer.executor.first_name }}
+        </li>
+    {% endfor %}
+</ul>
+
+<a class="button" href="{% url 'profile' %}">Назад</a>
+{% endblock %}

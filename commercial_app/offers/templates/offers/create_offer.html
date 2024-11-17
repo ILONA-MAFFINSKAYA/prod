@@ -1,0 +1,265 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание коммерческого предложения</title>
+    <link rel="stylesheet" href="{% static 'offers/css/style.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
+<body class="body">
+
+<div class="save">
+    <div class="header">
+        <img src="{% static 'offers/images/logo.png' %}" alt="Logo" class="logo">
+        <br>
+        <br>
+        <br>
+        <h1>Коммерческое предложение № {{ next_offer_number }}</h1>
+        <p>Дата: {{ current_date }}</p>
+    </div>
+
+    <div class="content">
+        <form id="offer-form" method="post" action="{% url 'offer_list' %}">
+            {% csrf_token %}
+
+        <div style="margin-bottom: 20px" class="note-container">
+            <div class="note-label"><strong>Заказчик:</strong></div>
+            <textarea class="note-input" name="customer" required></textarea>
+        </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Наименование товаров</th>
+                        <th>Кол-во</th>
+                        <th>Цена, руб.</th>
+                        <th>Сумма, руб.</th>
+                        <th class="minus">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="products-table-body">
+                    <tr>
+                        <td>1</td>
+                        <td>
+                            <select class="product-select" name="product-0-product" onchange="updateProductDetails(this)">
+                                <option value="">Выберите товар</option>
+                                {% for product in products %}
+                                    <option value="{{ product.id }}">{{ product.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input style="border: none; outline: none" type="number" name="product-0-quantity" class="quantity" value="1" onchange="updateTotalPrice(this)"></td>
+                        <td id="product-price">0</td>
+                        <td id="total-price">0</td>
+                        <td class="minus"><button class="button" type="button" onclick="removeProductRow(this)">-</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="button minus" type="button" onclick="addProductRow()">+</button>
+            <br>
+            <div class="note-container">
+                <div class="note-label"><strong>Итого: <span id="total-sum">0</span>руб.</strong></div>
+            </div>
+
+            <div class="note-container">
+                <div class="note-label"><strong>Примечание:</strong></div>
+                <textarea class="note-input" name="remarks" required></textarea>
+            </div>
+            <div class="note-container">
+                <div class="note-label"><strong>Доставка:</strong></div>
+                <textarea class="note-input" name="delivery" required></textarea>
+            </div>
+            <div class="note-container">
+                <div class="note-label"><strong>Условия оплаты:</strong></div>
+                <textarea class="note-input" name="payment_terms" required></textarea>
+            </div>
+
+    <div class="footer">
+        <p>Исполнитель: {{ user.first_name }}</p>
+        <p>{{ user.last_name }}</p>
+        <p>Email: {{ user.email }}</p>
+        <img style="margin-top: -120px; margin-right: 350px" src="{% static 'offers/images/pechat.png' %}" alt="Logo" class="logo">
+    </div>
+
+        <button id="button" class="minus" type="submit">Сохранить в программе</button>
+        </form>
+    </div>
+</div>
+
+<button class="button" onclick="downloadPageAsPDF()">Сохранить на компьютер</button>
+
+<div style="margin-top: 20px"><a class="button" href="{% url 'profile' %}">Назад</a></div>
+
+<footer>
+    <p>&copy; 2024 Commercial Offer App</p>
+</footer>
+
+<script>
+    let productCount = 1;
+
+    function updateProductDetails(selectElement) {
+        const productId = selectElement.value;
+        const row = selectElement.closest('tr');
+        const quantityInput = row.querySelector('.quantity');
+        const priceField = row.querySelector('#product-price');
+        const totalPriceField = row.querySelector('#total-price');
+
+        if (productId !== '') {
+            fetch(`/offers/get-product-details/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    priceField.textContent = data.price.toFixed(2);
+                    quantityInput.value = 1;
+                    updateTotalPrice(quantityInput);
+                });
+        } else {
+            priceField.textContent = '0';
+            totalPriceField.textContent = '0';
+        }
+    }
+
+    function updateTotalPrice(quantityInput) {
+        const quantity = parseInt(quantityInput.value);
+        const price = parseFloat(quantityInput.closest('tr').querySelector('#product-price').textContent);
+        const totalPriceField = quantityInput.closest('tr').querySelector('#total-price');
+
+        if (!isNaN(quantity) && !isNaN(price)) {
+            totalPriceField.textContent = (quantity * price).toFixed(2);
+        } else {
+            totalPriceField.textContent = '0';
+        }
+
+        updateTotalSum();
+    }
+
+    function removeProductRow(buttonElement) {
+    const row = buttonElement.closest('tr');
+    row.remove();
+    updateRowNumbers();
+    updateTotalSum();
+}
+
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('#products-table-body tr');
+    rows.forEach((row, index) => {
+        row.querySelector('td:nth-child(1)').textContent = index + 1;
+        const productSelect = row.querySelector('.product-select');
+        const quantityInput = row.querySelector('.quantity');
+        
+        productSelect.name = `product-${index}-product`;
+        quantityInput.name = `product-${index}-quantity`;
+    });
+}
+
+function addProductRow() {
+    const tableBody = document.getElementById('products-table-body');
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td></td> <!-- Порядковый номер будет обновлен позже -->
+        <td>
+            <select class="product-select" name="product-${productCount}-product" onchange="updateProductDetails(this)">
+                <option value="">Выберите товар</option>
+                {% for product in products %}
+                    <option value="{{ product.id }}">{{ product.name }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><input type="number" name="product-${productCount}-quantity" class="quantity" value="1" onchange="updateTotalPrice(this)"></td>
+        <td id="product-price">0</td>
+        <td id="total-price">0</td>
+        <td class="minus"><button class="button" type="button" onclick="removeProductRow(this)">-</button></td>
+    `;
+    tableBody.appendChild(newRow);
+    productCount++;
+    updateRowNumbers();
+
+    $(newRow).find('.product-select').select2();
+
+    $('.select2-container').css({
+        'border': 'none',
+        'outline': 'none'
+    });
+
+    $('.select2-container .select2-selection--single').css({
+        'border': 'none',
+        'outline': 'none'
+    });
+
+    $('.select2-container .select2-selection--single .select2-selection__rendered').css({
+        'padding': '0',
+        'margin': '0'
+    });
+
+    $('.select2-container .select2-selection--single .select2-selection__arrow').css({
+        'display': 'none'
+    });
+}
+
+    function updateTotalSum() {
+        const totalPriceFields = document.querySelectorAll('#total-price');
+        let totalSum = 0;
+
+        totalPriceFields.forEach(field => {
+            const price = parseFloat(field.textContent);
+            if (!isNaN(price)) {
+                totalSum += price;
+            }
+        });
+
+        document.getElementById('total-sum').textContent = totalSum.toFixed(2);
+    }
+
+    function downloadPageAsPDF() {
+        const element = document.querySelector('.save');
+
+        const excludeElements = document.querySelectorAll('.minus');
+
+        excludeElements.forEach(el => {
+            el.style.display = 'none';
+        });
+
+        html2pdf()
+            .from(element)
+            .save('page.pdf')
+            .then(() => {
+                excludeElements.forEach(el => {
+                    el.style.display = '';
+                });
+            });
+    }
+
+</script>
+
+<script>
+    $(document).ready(function() {
+        $('.product-select').select2();
+
+        $('.select2-container').css({
+            'border': 'none',
+            'outline': 'none'
+        });
+
+        $('.select2-container .select2-selection--single').css({
+            'border': 'none',
+            'outline': 'none'
+        });
+
+        $('.select2-container .select2-selection--single .select2-selection__rendered').css({
+            'padding': '0',
+            'margin': '0'
+        });
+
+        $('.select2-container .select2-selection--single .select2-selection__arrow').css({
+            'display': 'none'
+        });
+    });
+</script>
+
+</body>
+</html>

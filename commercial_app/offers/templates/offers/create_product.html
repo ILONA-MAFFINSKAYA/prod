@@ -1,0 +1,14 @@
+{% extends 'offers/base.html' %}
+
+{% block title %}Создать продукт{% endblock %}
+
+{% block content %}
+<h1>Создать продукт</h1>
+<form id="product-form" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="button" type="submit">Сохранить</button>
+</form>
+    
+    <a class="button" href="{% url 'profile' %}">Назад</a>
+{% endblock %}

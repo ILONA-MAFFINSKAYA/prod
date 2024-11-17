@@ -1,0 +1,117 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детали КП</title>
+    <link rel="stylesheet" href="{% static 'offers/css/style.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
+<body class="body">
+
+<div class="save">
+    <div class="header">
+        <img src="{% static 'offers/images/logo.png' %}" alt="Logo" class="logo">
+        <br>
+        <br>
+        <br>
+        <h1>Коммерческое предложение № {{ offer.number }}</h1>
+        <p>Дата: {{ offer.date }}</p>
+    </div>
+
+    <div class="content">
+        <form id="offer-form" method="post" action="{% url 'offer_list' %}">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 20px" class="note-container">
+                <div class="note-label"><strong>Заказчик:</strong></div>
+                <div class="note-input">{{ offer.customer }}</div>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Наименование товаров</th>
+                        <th>Кол-во</th>
+                        <th>Цена, руб.</th>
+                        <th>Сумма, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in offer_products %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ product.product.name }}</td>
+                            <td>{{ product.quantity }}</td>
+                            <td>{{ product.product.price }}</td>
+                            <td>{{ product.total_price }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Нет доступных товаров.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="note-container">
+                <div class="note-label"><strong>Итого: <span id="total-sum">{{ offer.total_price }}</span> руб.</strong></div>
+            </div>
+
+            <div class="note-container">
+                <div class="note-label"><strong>Примечание:</strong></div>
+                <div class="note-input">{{ offer.remarks }}</div>
+            </div>
+            <div class="note-container">
+                <div class="note-label"><strong>Доставка:</strong></div>
+                <div class="note-input">{{ offer.delivery }}</div>
+            </div>
+            <div class="note-container">
+                <div class="note-label"><strong>Условия оплаты:</strong></div>
+                <div class="note-input">{{ offer.payment_terms }}</div>
+            </div>
+
+            <div class="footer">
+                <p>Исполнитель: {{ offer.executor.first_name }}</p>
+                <p>{{ offer.executor.last_name }}</p>
+                <p>Email: {{ offer.executor.email }}</p>
+                <img style="margin-top: -120px; margin-right: 350px" src="{% static 'offers/images/pechat.png' %}" alt="Logo" class="logo">
+            </div>
+        </form>
+    </div>
+</div>
+
+<button class="button" onclick="downloadPageAsPDF()">Сохранить на компьютер</button>
+
+<div style="margin-top: 20px"><a class="button" href="{% url 'profile' %}">Назад</a></div>
+
+<footer>
+    <p>&copy; 2024 Commercial Offer App</p>
+</footer>
+
+<script>
+    function downloadPageAsPDF() {
+        const element = document.querySelector('.save');
+
+        const excludeElements = document.querySelectorAll('.minus');
+        excludeElements.forEach(el => {
+            el.style.display = 'none';
+        });
+
+        html2pdf()
+            .from(element)
+            .save('page.pdf')
+            .then(() => {
+                excludeElements.forEach(el => {
+                    el.style.display = '';
+                });
+            });
+    }
+</script>
+
+</body>
+</html>
